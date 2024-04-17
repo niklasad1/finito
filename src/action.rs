@@ -9,6 +9,7 @@ pub trait Action {
     /// The error that the future may resolve with.
     type Error;
 
+    /// Run the future.
     fn run(&mut self) -> Self::Future;
 }
 

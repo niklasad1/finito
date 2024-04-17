@@ -1,10 +1,22 @@
+#![cfg(target_arch = "wasm32")]
+
 use std::future;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use finito::{FixedInterval, Retry, RetryIf};
+use wasm_bindgen_test::*;
 
-#[tokio::test]
+wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
+/// Run the tests by `$ wasm-pack test --firefox --headless`
+
+fn init_tracing() {
+    console_error_panic_hook::set_once();
+    tracing_wasm::set_as_global_default();
+}
+
+#[wasm_bindgen_test]
 async fn attempts_just_once() {
     let counter = Arc::new(AtomicUsize::new(0));
     let cloned_counter = counter.clone();
@@ -18,7 +30,7 @@ async fn attempts_just_once() {
     assert_eq!(counter.load(Ordering::SeqCst), 1);
 }
 
-#[tokio::test]
+#[wasm_bindgen_test]
 async fn attempts_until_max_retries_exceeded() {
     let s = FixedInterval::from_millis(100).take(2);
     let counter = Arc::new(AtomicUsize::new(0));
@@ -33,7 +45,7 @@ async fn attempts_until_max_retries_exceeded() {
     assert_eq!(counter.load(Ordering::SeqCst), 3);
 }
 
-#[tokio::test]
+#[wasm_bindgen_test]
 async fn attempts_until_success() {
     let s = FixedInterval::from_millis(100);
     let counter = Arc::new(AtomicUsize::new(0));
@@ -52,7 +64,7 @@ async fn attempts_until_success() {
     assert_eq!(counter.load(Ordering::SeqCst), 4);
 }
 
-#[tokio::test]
+#[wasm_bindgen_test]
 async fn attempts_retry_only_if_given_condition_is_true() {
     let s = FixedInterval::from_millis(100).take(5);
     let counter = Arc::new(AtomicUsize::new(0));

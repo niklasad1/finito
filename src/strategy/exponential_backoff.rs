@@ -1,11 +1,10 @@
 use std::iter::Iterator;
 use std::time::Duration;
-use std::u64::MAX as U64_MAX;
 
 /// A retry strategy driven by exponential back-off.
 ///
 /// The power corresponds to the number of past attempts.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ExponentialBackoff {
     current: u64,
     base: u64,
@@ -22,7 +21,7 @@ impl ExponentialBackoff {
     pub fn from_millis(base: u64) -> ExponentialBackoff {
         ExponentialBackoff {
             current: base,
-            base: base,
+            base,
             factor: 1u64,
             max_delay: None,
         }
@@ -50,11 +49,7 @@ impl Iterator for ExponentialBackoff {
 
     fn next(&mut self) -> Option<Duration> {
         // set delay duration by applying factor
-        let duration = if let Some(duration) = self.current.checked_mul(self.factor) {
-            Duration::from_millis(duration)
-        } else {
-            Duration::from_millis(U64_MAX)
-        };
+        let duration = Duration::from_millis(self.current.saturating_mul(self.factor));
 
         // check if we reached max delay
         if let Some(ref max_delay) = self.max_delay {
@@ -63,11 +58,7 @@ impl Iterator for ExponentialBackoff {
             }
         }
 
-        if let Some(next) = self.current.checked_mul(self.base) {
-            self.current = next;
-        } else {
-            self.current = U64_MAX;
-        }
+        self.current = self.current.saturating_mul(self.base);
 
         Some(duration)
     }
@@ -93,11 +84,11 @@ fn returns_some_exponential_base_2() {
 
 #[test]
 fn saturates_at_maximum_value() {
-    let mut s = ExponentialBackoff::from_millis(U64_MAX - 1);
+    let mut s = ExponentialBackoff::from_millis(u64::MAX - 1);
 
-    assert_eq!(s.next(), Some(Duration::from_millis(U64_MAX - 1)));
-    assert_eq!(s.next(), Some(Duration::from_millis(U64_MAX)));
-    assert_eq!(s.next(), Some(Duration::from_millis(U64_MAX)));
+    assert_eq!(s.next(), Some(Duration::from_millis(u64::MAX - 1)));
+    assert_eq!(s.next(), Some(Duration::from_millis(u64::MAX)));
+    assert_eq!(s.next(), Some(Duration::from_millis(u64::MAX)));
 }
 
 #[test]

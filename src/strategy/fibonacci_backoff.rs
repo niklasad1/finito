@@ -1,6 +1,5 @@
 use std::iter::Iterator;
 use std::time::Duration;
-use std::u64::MAX as U64_MAX;
 
 /// A retry strategy driven by the fibonacci series.
 ///
@@ -12,7 +11,7 @@ use std::u64::MAX as U64_MAX;
 ///
 /// See ["A Performance Comparison of Different Backoff Algorithms under Different Rebroadcast Probabilities for MANETs."](http://www.comp.leeds.ac.uk/ukpew09/papers/12.pdf)
 /// for more details.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct FibonacciBackoff {
     curr: u64,
     next: u64,
@@ -54,11 +53,7 @@ impl Iterator for FibonacciBackoff {
 
     fn next(&mut self) -> Option<Duration> {
         // set delay duration by applying factor
-        let duration = if let Some(duration) = self.curr.checked_mul(self.factor) {
-            Duration::from_millis(duration)
-        } else {
-            Duration::from_millis(U64_MAX)
-        };
+        let duration = Duration::from_millis(self.curr.saturating_mul(self.factor));
 
         // check if we reached max delay
         if let Some(ref max_delay) = self.max_delay {
@@ -67,13 +62,10 @@ impl Iterator for FibonacciBackoff {
             }
         }
 
-        if let Some(next_next) = self.curr.checked_add(self.next) {
-            self.curr = self.next;
-            self.next = next_next;
-        } else {
-            self.curr = self.next;
-            self.next = U64_MAX;
-        }
+        let next_next = self.curr.saturating_add(self.next);
+
+        self.curr = self.next;
+        self.next = next_next;
 
         Some(duration)
     }
@@ -92,9 +84,9 @@ fn returns_the_fibonacci_series_starting_at_10() {
 
 #[test]
 fn saturates_at_maximum_value() {
-    let mut iter = FibonacciBackoff::from_millis(U64_MAX);
-    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
-    assert_eq!(iter.next(), Some(Duration::from_millis(U64_MAX)));
+    let mut iter = FibonacciBackoff::from_millis(u64::MAX);
+    assert_eq!(iter.next(), Some(Duration::from_millis(u64::MAX)));
+    assert_eq!(iter.next(), Some(Duration::from_millis(u64::MAX)));
 }
 
 #[test]
