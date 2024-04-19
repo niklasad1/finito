@@ -1,0 +1,136 @@
+name: Continuous integration
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+    paths-ignore:
+      - 'README.md'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  check-style:
+    name: Check style
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4.1.2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1.0.7
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.3
+
+      - name: Cargo fmt
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Check clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  check-docs:
+    name: Check rustdoc
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4.1.2
+
+      - name: Install Rust nightly toolchain
+        uses: actions-rs/toolchain@v1.0.7
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Check rustdoc
+        run: RUSTDOCFLAGS="--cfg docsrs --deny rustdoc::broken_intra_doc_links" cargo doc --verbose --workspace --no-deps --document-private-items
+
+  check-code:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4.1.2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1.0.7
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-machete
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-machete
+          version: 0.5
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.3
+
+      - name: Check wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo check --target wasm32-unknown-unknown
+
+      - name: Check unused dependencies
+        run: cargo machete
+
+  tests_ubuntu:
+    name: Run tests Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4.1.2
+
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1.0.7
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.3
+
+      - name: Cargo test
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: test
+          args: --workspace
+
+  wasm_tests:
+    name: Test wasm
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4.1.2
+
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+    - name: Install firefox
+      uses: browser-actions/setup-firefox@latest
+
+    - name: Install chrome
+      uses: browser-actions/setup-chrome@latest
+
+    - name: Run WASM tests
+      run: |
+        wasm-pack test --headless --firefox
+        wasm-pack test --headless --chrome
+      working-directory: wasm-tests
