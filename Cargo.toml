@@ -2,18 +2,22 @@
 name = "finito"
 version = "0.1.0"
 authors = ["Niklas Adolfsson <niklasadolfsson1@gmail.com>"]
-description = "Retry behaviours for futures"
+description = "Retry behaviour for futures"
 license = "MIT"
 readme = "README.md"
 keywords = ["futures", "retry", "exponential", "backoff", "wasm"]
 edition = "2021"
+repository = "https://github.com/niklasad1/finito"
+documentation = "https://docs.rs/finito"
+rust-version = "1.70.0"
 
 [dependencies]
 pin-project = "1"
 futures-timer = "3"
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-futures-timer = { version = "3", features = ["wasm-bindgen"] }
+[features]
+default = []
+wasm-bindgen = ["futures-timer/wasm-bindgen"]
 
 [dev-dependencies]
-tokio = { version = "1.0", features = ["macros", "rt"] }
+tokio = { version = "1", features = ["macros", "rt"] }

@@ -3,10 +3,11 @@ name = "wasm-test"
 publish = false
 edition = "2021"
 version = "0.1.0"
+resolver = "2"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.24"
 tracing-wasm = "0.2.1"
 console_error_panic_hook = "0.1.7"
-finito = { path = ".." }
+finito = { path = "..", features = ["wasm-bindgen"] }
 tracing = { version = "0.1.40", default-features = false }
