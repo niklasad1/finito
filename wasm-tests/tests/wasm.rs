@@ -18,6 +18,8 @@ fn init_tracing() {
 
 #[wasm_bindgen_test]
 async fn attempts_just_once() {
+    init_tracing();
+
     let counter = Arc::new(AtomicUsize::new(0));
     let cloned_counter = counter.clone();
     let future = Retry::new(std::iter::empty(), move || {
